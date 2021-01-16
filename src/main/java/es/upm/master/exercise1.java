@@ -54,18 +54,12 @@ public class exercise1 {
         KeyedStream<Tuple4<Long, Long, Long, Integer>, Tuple> keyedStream = mapStream.assignTimestampsAndWatermarks(new
                 AscendingTimestampExtractor<Tuple4<Long, Long, Long, Integer>>(){
                     public long extractAscendingTimestamp(Tuple4<Long, Long, Long, Integer> element){
-                        return element.f0 * 10000;
+                        return element.f0 * 1000;
                     }}).keyBy(1, 2);
 
         SingleOutputStreamOperator<Tuple4<Long, Long, Long, Integer>> numVehiclesPerTime =
-                keyedStream.window(TumblingEventTimeWindows.of(Time.hours(1))).apply(new NumberVehicles());
+                keyedStream.window(TumblingEventTimeWindows.of(Time.seconds(3600))).apply(new NumberVehicles());
 
-        // Next one is same as wordCount
-//        SingleOutputStreamOperator<Tuple4<Long, Long, Long, Integer>> result = keyedStream.reduce(new ReduceFunction<Tuple4<Long, Long, Long, Integer>>() {
-//            public Tuple4<Long, Long, Long, Integer> reduce(Tuple4<Long, Long, Long, Integer> accumulator, Tuple4<Long, Long, Long, Integer> input) throws Exception {
-//                return new Tuple4<Long, Long, Long, Integer>(accumulator.f0, accumulator.f1, accumulator.f2, accumulator.f3 + input.f3);
-//            }
-//        });
 
         // Output result to a file
         if (params.has("output")){
