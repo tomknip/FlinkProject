@@ -55,13 +55,13 @@ public class exercise3 {
         KeyedStream<Tuple6<Long, Long, Long, Long, Long, Long>, Tuple> keyedStream = mapStream
                 .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<Tuple6<Long, Long, Long, Long, Long, Long>>(){
                                      public long extractAscendingTimestamp(Tuple6<Long, Long, Long, Long, Long, Long> element){
-                                         return element.f0 * 10000;
+                                         return element.f0 * 1000;
                                      }})
                 .keyBy(1);
 
 
         SingleOutputStreamOperator<Tuple6<Long, Long, Long, Long, Long, Long>> sumSpeed = keyedStream.
-                window(TumblingEventTimeWindows.of(Time.seconds(36000))).apply(new calculateAvgSpeed());
+                window(TumblingEventTimeWindows.of(Time.seconds(3600))).apply(new calculateAvgSpeed());
 
 
         SingleOutputStreamOperator<Tuple3<Long, Long, Long>> result = sumSpeed.
