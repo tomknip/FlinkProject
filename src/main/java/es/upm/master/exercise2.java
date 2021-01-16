@@ -17,7 +17,22 @@ import org.apache.flink.streaming.api.functions.windowing.AllWindowFunction;
 import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
+
 import org.apache.flink.util.Collector;
+import java.util.ArrayList;
+
+// Attempt
+import org.apache.flink.streaming.api.functions.ProcessFunction;
+import org.apache.flink.streaming.api.functions.KeyedProcessFunction.Context;
+import org.apache.flink.streaming.api.functions.KeyedProcessFunction.OnTimerContext;
+import java.util.PriorityQueue;
+import org.apache.flink.api.common.state.ValueState;
+import org.apache.flink.api.common.state.ValueStateDescriptor;
+import org.apache.flink.api.common.typeinfo.TypeHint;
+import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.configuration.Configuration;
+import org.apache.flink.streaming.api.TimerService;
+// End attempt
 
 import java.util.Iterator;
 
@@ -53,7 +68,8 @@ public class exercise2 {
                     public boolean filter(Tuple6<Long, Long, Long, Long, Long, Long> in) throws Exception {
                         return (in.f5 >= Long.parseLong(params.get("startSegment")) && // select relevant segments
                                 in.f5 <= Long.parseLong(params.get("endSegment")) &&
-                                in.f4 == 0); // only eastbound vehicles
+                                in.f4 == 0 && // only eastbound vehicles
+                                in.f2 > Integer.parseInt(params.get("speed")));
                     }
                 });
 
@@ -64,23 +80,23 @@ public class exercise2 {
                     }})
                 .keyBy(1,4);
 
-        SingleOutputStreamOperator<Tuple6<Long, Long, Long, Long, Long, Long>> avgSpeed = keyedStream.
-                window(TumblingEventTimeWindows.of(Time.seconds(Long.parseLong(params.get("time"))))).
-                apply(new exercise2.calculateAvgSpeed()).
-                filter(new FilterFunction<Tuple6<Long, Long, Long, Long, Long, Long>>(){
-                    public boolean filter(Tuple6<Long, Long, Long, Long, Long, Long> in) throws Exception {
-                        return (in.f2 > Integer.parseInt(params.get("speed")));
-                    }
-                });
+//        SingleOutputStreamOperator<Tuple6<Long, Long, Long, Long, Long, Long>> avgSpeed = keyedStream.
+//                window(TumblingEventTimeWindows.of(Time.seconds(Long.parseLong(params.get("time"))))).
+//                apply(new exercise2.calculateAvgSpeed()).
+//                filter(new FilterFunction<Tuple6<Long, Long, Long, Long, Long, Long>>(){
+//                    public boolean filter(Tuple6<Long, Long, Long, Long, Long, Long> in) throws Exception {
+//                        return (in.f2 > Integer.parseInt(params.get("speed")));
+//                    }
+//                });
 
-        SingleOutputStreamOperator<Tuple4<Long, Long, Integer, String>> speedersOnXway = avgSpeed.
-                windowAll(TumblingEventTimeWindows.of(Time.seconds(Long.parseLong(params.get("time"))))).apply(new exercise2.SpeedersOnXway());
+        SingleOutputStreamOperator<Tuple4<Long, Long, Integer, String>> speedersOnXway = keyedStream.
+                windowAll(TumblingEventTimeWindows.of(Time.seconds(Long.parseLong(params.get("time"))))).
+                apply(new exercise2.SpeedersOnXway());
 
-        System.out.println(params.get("time"));
         // Output result to a file
         if (params.has("output")){
             // speedersOnXway.print();
-            speedersOnXway.writeAsCsv(params.get("output"));
+            speedersOnXway.writeAsCsv(params.get("output")).setParallelism(1);
         }
         env.execute("exercise2");
     }
@@ -131,6 +147,9 @@ public class exercise2 {
             }
             while(iterator.hasNext()){
                 Tuple6<Long, Long, Long, Long, Long, Long> next = iterator.next();
+                if(ts > next.f0){
+                    ts = next.f0;
+                }
                 vids += "- " + next.f1 + " ";
                 count += 1;
             }
