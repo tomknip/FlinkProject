@@ -68,8 +68,7 @@ public class exercise2 {
                     public boolean filter(Tuple6<Long, Long, Long, Long, Long, Long> in) throws Exception {
                         return (in.f5 >= Long.parseLong(params.get("startSegment")) && // select relevant segments
                                 in.f5 <= Long.parseLong(params.get("endSegment")) &&
-                                in.f4 == 0 && // only eastbound vehicles
-                                in.f2 > Integer.parseInt(params.get("speed")));
+                                in.f4 == 0); // only eastbound vehicle
                     }
                 });
 
@@ -80,16 +79,16 @@ public class exercise2 {
                     }})
                 .keyBy(1,4);
 
-//        SingleOutputStreamOperator<Tuple6<Long, Long, Long, Long, Long, Long>> avgSpeed = keyedStream.
-//                window(TumblingEventTimeWindows.of(Time.seconds(Long.parseLong(params.get("time"))))).
-//                apply(new exercise2.calculateAvgSpeed()).
-//                filter(new FilterFunction<Tuple6<Long, Long, Long, Long, Long, Long>>(){
-//                    public boolean filter(Tuple6<Long, Long, Long, Long, Long, Long> in) throws Exception {
-//                        return (in.f2 > Integer.parseInt(params.get("speed")));
-//                    }
-//                });
+        SingleOutputStreamOperator<Tuple6<Long, Long, Long, Long, Long, Long>> avgSpeed = keyedStream.
+                window(TumblingEventTimeWindows.of(Time.seconds(Long.parseLong(params.get("time"))))).
+                apply(new exercise2.calculateAvgSpeed()).
+                filter(new FilterFunction<Tuple6<Long, Long, Long, Long, Long, Long>>(){
+                    public boolean filter(Tuple6<Long, Long, Long, Long, Long, Long> in) throws Exception {
+                        return (in.f2 > Integer.parseInt(params.get("speed")));
+                    }
+                });
 
-        SingleOutputStreamOperator<Tuple4<Long, Long, Integer, String>> speedersOnXway = keyedStream.
+        SingleOutputStreamOperator<Tuple4<Long, Long, Integer, String>> speedersOnXway = avgSpeed.
                 windowAll(TumblingEventTimeWindows.of(Time.seconds(Long.parseLong(params.get("time"))))).
                 apply(new exercise2.SpeedersOnXway());
 
