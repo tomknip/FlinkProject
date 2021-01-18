@@ -79,11 +79,11 @@ public class exercise2 {
                     }})
                 .keyBy(1,4);
 
-        SingleOutputStreamOperator<Tuple6<Long, Long, Long, Long, Long, Long>> avgSpeed = keyedStream.
+        SingleOutputStreamOperator<Tuple6<Long, Long, Double, Long, Long, Long>> avgSpeed = keyedStream.
                 window(TumblingEventTimeWindows.of(Time.seconds(Long.parseLong(params.get("time"))))).
                 apply(new exercise2.calculateAvgSpeed()).
-                filter(new FilterFunction<Tuple6<Long, Long, Long, Long, Long, Long>>(){
-                    public boolean filter(Tuple6<Long, Long, Long, Long, Long, Long> in) throws Exception {
+                filter(new FilterFunction<Tuple6<Long, Long, Double, Long, Long, Long>>(){
+                    public boolean filter(Tuple6<Long, Long, Double, Long, Long, Long> in) throws Exception {
                         return (in.f2 > Integer.parseInt(params.get("speed")));
                     }
                 });
@@ -101,9 +101,9 @@ public class exercise2 {
     }
 
     public static class calculateAvgSpeed implements WindowFunction<Tuple6<Long, Long, Long, Long, Long, Long>,
-            Tuple6<Long, Long, Long, Long, Long, Long>, Tuple, TimeWindow> {
+            Tuple6<Long, Long, Double, Long, Long, Long>, Tuple, TimeWindow> {
         public void apply(Tuple tuple, TimeWindow timeWindow, Iterable<Tuple6<Long, Long, Long, Long, Long, Long>> iterable,
-                          Collector<Tuple6<Long, Long, Long, Long, Long, Long>> collector) throws Exception {
+                          Collector<Tuple6<Long, Long, Double, Long, Long, Long>> collector) throws Exception {
             Iterator<Tuple6<Long, Long, Long, Long, Long, Long>> iterator = iterable.iterator();
             Tuple6<Long, Long, Long, Long, Long, Long> first = iterator.next();
             Long ts = 0L;
@@ -124,17 +124,17 @@ public class exercise2 {
                 spd += next.f2;
                 count++;
             }
-            Long avg = spd/count;
-            collector.collect(new Tuple6<Long, Long, Long, Long, Long, Long>(ts, VID, avg, xway, count.longValue(), Seg));
+            Double avg = spd.doubleValue()/count;
+            collector.collect(new Tuple6<Long, Long, Double, Long, Long, Long>(ts, VID, avg, xway, count.longValue(), Seg));
         }
     }
 
-    public static class SpeedersOnXway implements AllWindowFunction<Tuple6<Long, Long, Long, Long, Long, Long>,
+    public static class SpeedersOnXway implements AllWindowFunction<Tuple6<Long, Long, Double, Long, Long, Long>,
             Tuple4<Long, Long, Integer, String>, TimeWindow> {
-        public void apply(TimeWindow timeWindow, Iterable<Tuple6<Long, Long, Long, Long, Long, Long>> iterable,
+        public void apply(TimeWindow timeWindow, Iterable<Tuple6<Long, Long, Double, Long, Long, Long>> iterable,
                           Collector<Tuple4<Long, Long, Integer, String>> collector) throws Exception {
-            Iterator<Tuple6<Long, Long, Long, Long, Long, Long>> iterator = iterable.iterator();
-            Tuple6<Long, Long, Long, Long, Long, Long> first = iterator.next();
+            Iterator<Tuple6<Long, Long, Double, Long, Long, Long>> iterator = iterable.iterator();
+            Tuple6<Long, Long, Double, Long, Long, Long> first = iterator.next();
             Long ts = 0L;
             Long xway = 0L;
             Integer count = 1;
@@ -145,7 +145,7 @@ public class exercise2 {
                 vids += first.f1 + " ";
             }
             while(iterator.hasNext()){
-                Tuple6<Long, Long, Long, Long, Long, Long> next = iterator.next();
+                Tuple6<Long, Long, Double, Long, Long, Long> next = iterator.next();
                 if(ts > next.f0){
                     ts = next.f0;
                 }
